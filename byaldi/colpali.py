@@ -594,16 +594,27 @@ class ColPaliModel:
 
     def filter_embeddings(self,filter_metadata:Dict[str,str]):
         req_doc_ids = []
+        page_num = None
+        if 'page' in filter_metadata.keys():
+            page_num = filter_metadata.pop('page')
         for idx,metadata_dict in self.doc_id_to_metadata.items():
+            requested = True
             for metadata_key,metadata_value in metadata_dict.items():
                 if metadata_key in filter_metadata:
-                    if filter_metadata[metadata_key] == metadata_value:
-                        req_doc_ids.append(idx)
-                        
-        req_embedding_ids = [eid for eid,doc in self.embed_id_to_doc_id.items() if doc['doc_id'] in req_doc_ids]
+                    if metadata_value not in filter_metadata[metadata_key]:
+                        requested = False
+                        break
+            if requested:
+                req_doc_ids.append(idx)
+    
+        if page_num:                
+            req_embedding_ids = [eid for eid,doc in self.embed_id_to_doc_id.items() if doc['doc_id'] in req_doc_ids and doc['page_id'] == page_num]
+        else:
+            req_embedding_ids = [eid for eid,doc in self.embed_id_to_doc_id.items() if doc['doc_id'] in req_doc_ids]
         req_embeddings = [ie for idx,ie in enumerate(self.indexed_embeddings) if idx in req_embedding_ids]
-
+    
         return req_embeddings, req_embedding_ids
+ 
     
     def search(
         self,
